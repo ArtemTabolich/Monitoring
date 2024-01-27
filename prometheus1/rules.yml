@@ -1,0 +1,22 @@
+groups:
+  - name:  CPUusage
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 * (1 - (irate(node_cpu_seconds_total{Metric="CPU", mode="idle", job="task20"}[1m]))) > 80
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High CPU Usage"
+          description: " The average CPU usage amounts to {{ $value }}."
+
+      - alert: HighVMUsage
+        expr: (100 * ((node_memory_MemTotal_bytes{Metric="VM"} - node_memory_MemFree_bytes{Metric="VM"} - node_memory_Buffers_bytes{Metric="VM"} - node_memory_Cached_bytes{Metric="VM"} - node_memory_SReclaimable_bytes{Metric="VM"}) / node_memory_MemTotal_bytes{Metric="VM"})) > 30
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High VM Usage"
+          description: " The average VM usage amounts to {{ $value }}."
+
+

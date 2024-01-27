@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  nginx-app:
+    container_name: nginx
+    image: nginx
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 80:80
+    volumes:
+      - /var/log:/var/log/nginx
+    networks:
+      - app
+
+  apache:
+    container_name: apache
+    image: ubuntu/apache2
+    labels:
+      logging: "promtail1"
+      logging_jobname: "containerlogs1"
+    ports:
+      - 8080:80
+    networks:
+      - app
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - /config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    networks:
+      - app
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app
+
+  promtail:
+    image:  grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /config/promtail.yaml:/etc/promtail/docker-config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/docker-config.yaml
+    depends_on:
+      - loki
+    networks:
+      - app
+
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - /home/ubuntu/prometheus1:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - '9090:9090'
+    networks:
+      - app
+
+  node-exporter:
+    image: prom/node-exporter
+    ports:
+      - '9100:9100'
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+    name: app
+
+volumes:
+  prometheus-data:
+  grafana-data:
